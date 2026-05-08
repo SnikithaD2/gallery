@@ -316,9 +316,9 @@ body {
 
 .polaroid-photo {
   width: 100%;
-  /* No fixed aspect-ratio — image defines its own height */
+  height: 260px;         /* fixed height — all polaroids same size */
   overflow: hidden;
-  background: linear-gradient(135deg, var(--pink-pale), var(--pink-pastel));
+  background: var(--pink-pale);
   position: relative;
   border-radius: 2px;
   display: flex;
@@ -327,12 +327,10 @@ body {
 }
 .polaroid-photo img {
   width: 100%;
-  height: auto;          /* full image visible, no cropping */
-  max-height: 340px;     /* prevent super-tall portraits from dominating */
-  object-fit: contain;   /* show entire photo */
+  height: 100%;
+  object-fit: contain;   /* full image visible, scaled to fit, no cropping */
   display: block;
   transition: transform 0.4s ease;
-  background: var(--pink-pale);
 }
 .polaroid-inner:hover .polaroid-photo img {
   transform: scale(1.03);
