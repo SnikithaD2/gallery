@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BTech Memories 2023–27 💕</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet"/>
+</head>
+<body class="login-page">
+
+  <!-- Floating hearts background -->
+  <div class="hearts-bg" id="heartsBg"></div>
+
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-icon">📸</div>
+      <h1 class="login-title">Our Memories</h1>
+      <p class="login-sub">BTech 2023 – 27 ✨</p>
+
+      <div class="input-group">
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Enter username" autocomplete="off"/>
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter password"/>
+      </div>
+
+      <div id="loginError" class="login-error hidden">Wrong credentials, bestie 🙈</div>
+
+      <button class="login-btn" onclick="doLogin()">Open Memories 💖</button>
+    </div>
+  </div>
+
+  <script>
+    // Generate floating hearts
+    const bg = document.getElementById('heartsBg');
+    const emojis = ['💕','🌸','✨','💗','🌷','💞','🎀','💓'];
+    for (let i = 0; i < 30; i++) {
+      const span = document.createElement('span');
+      span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      span.style.cssText = `
+        left: ${Math.random() * 100}%;
+        animation-duration: ${4 + Math.random() * 8}s;
+        animation-delay: ${Math.random() * 6}s;
+        font-size: ${12 + Math.random() * 18}px;
+        opacity: ${0.3 + Math.random() * 0.5};
+      `;
+      bg.appendChild(span);
+    }
+
+    function doLogin() {
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
+      const err = document.getElementById('loginError');
+      if (u === 'memories@23-27' && p === 'SnYaVaJe') {
+        sessionStorage.setItem('gallery_auth', 'true');
+        window.location.href = 'gallery.html';
+      } else {
+        err.classList.remove('hidden');
+        document.querySelector('.login-card').classList.add('shake');
+        setTimeout(() => document.querySelector('.login-card').classList.remove('shake'), 500);
+      }
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  </script>
+</body>
+</html>

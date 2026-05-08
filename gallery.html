@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BTech Gallery 💕</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Nunito:wght@300;400;600&family=Caveat:wght@500&display=swap" rel="stylesheet"/>
+</head>
+<body class="gallery-page">
+
+  <div class="hearts-bg" id="heartsBg"></div>
+
+  <!-- Header -->
+  <header class="gallery-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <span class="header-icon">📸</span>
+        <div>
+          <h1 class="header-title">Our BTech Memories</h1>
+          <p class="header-sub">Class of 2023 – 2027 💕</p>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()">Logout 👋</button>
+    </div>
+  </header>
+
+  <!-- Gallery grid -->
+  <main class="gallery-main">
+    <div id="loadingMsg" class="no-photos">
+      <div class="no-photos-icon" style="animation: bounce 1.2s ease-in-out infinite;">🌸</div>
+      <p>Loading your memories...</p>
+    </div>
+    <div id="noPhotos" class="no-photos hidden">
+      <div class="no-photos-icon">🌸</div>
+      <p>No memories yet!<br>Add photos to the <code>images/</code> folder.</p>
+    </div>
+    <div id="errorMsg" class="no-photos hidden">
+      <div class="no-photos-icon">😅</div>
+      <p id="errorText"></p>
+    </div>
+    <div class="polaroid-grid" id="polaroidGrid"></div>
+  </main>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <div class="lightbox-inner" onclick="event.stopPropagation()">
+      <button class="lb-close" onclick="closeLightbox()">✕</button>
+      <div class="lb-polaroid">
+        <img id="lbImg" src="" alt=""/>
+        <div class="lb-caption" id="lbCaption"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Auth guard
+    if (!sessionStorage.getItem('gallery_auth')) {
+      window.location.href = 'index.html';
+    }
+
+    function logout() {
+      sessionStorage.removeItem('gallery_auth');
+      window.location.href = 'index.html';
+    }
+
+    const tilts = [-4, -2, -3, 2, 3, 4, -1, 1, -4, 3];
+    const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif'];
+
+    // ── Smart date extractor from filename ──────────────────────────────
+    function extractDate(filename) {
+      const name = filename.replace(/\.[^.]+$/, '');
+
+      // YYYY-MM-DD or YYYY_MM_DD
+      let m = name.match(/(\d{4})[-_](\d{2})[-_](\d{2})/);
+      if (m) {
+        const d = new Date(`${m[1]}-${m[2]}-${m[3]}`);
+        if (!isNaN(d)) return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      }
+
+      // YYYYMMDD (8 digits together, like IMG_20240315)
+      m = name.match(/(\d{4})(\d{2})(\d{2})/);
+      if (m) {
+        const d = new Date(`${m[1]}-${m[2]}-${m[3]}`);
+        if (!isNaN(d) && d.getFullYear() > 2000) return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      }
+
+      // DD-MM-YYYY or DD_MM_YYYY
+      m = name.match(/(\d{2})[-_](\d{2})[-_](\d{4})/);
+      if (m) {
+        const d = new Date(`${m[3]}-${m[2]}-${m[1]}`);
+        if (!isNaN(d)) return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      }
+
+      // Clean up filename as label fallback
+      const cleaned = name
+        .replace(/^(img|dsc|pic|photo|image|screenshot|snap|wp|vlc|vid)[-_]?/i, '')
+        .replace(/[-_]+/g, ' ')
+        .replace(/\s*\d{4,}\s*/g, ' ')
+        .trim();
+
+      return cleaned.length > 1
+        ? (cleaned.charAt(0).toUpperCase() + cleaned.slice(1)).substring(0, 22)
+        : '📅 Memory';
+    }
+
+    // ── Build polaroid cards ────────────────────────────────────────────
+    function buildGallery(files) {
+      const grid = document.getElementById('polaroidGrid');
+      document.getElementById('loadingMsg').classList.add('hidden');
+
+      if (!files || files.length === 0) {
+        document.getElementById('noPhotos').classList.remove('hidden');
+        return;
+      }
+
+      files.forEach((filename, i) => {
+        const tilt = tilts[i % tilts.length];
+        const date = extractDate(filename);
+        const safeCaption = date.replace(/'/g, "\\'");
+        const div = document.createElement('div');
+        div.className = 'polaroid';
+        div.style.setProperty('--tilt', `${tilt}deg`);
+        div.style.animationDelay = `${i * 0.08}s`;
+        div.innerHTML = `
+          <div class="polaroid-inner" onclick="openLightbox('images/${filename}', '${safeCaption}')">
+            <div class="polaroid-photo">
+              <img src="images/${filename}" alt="${filename}" loading="lazy"
+                   onerror="this.closest('.polaroid').remove()"/>
+              <div class="polaroid-shine"></div>
+            </div>
+            <div class="polaroid-footer">
+              <span class="polaroid-date">${date}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(div);
+      });
+    }
+
+    // ── Strategy 1: Fetch directory listing (Python / Node / any server) ─
+    async function loadFromDirectoryListing() {
+      const res = await fetch('images/');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const links = Array.from(doc.querySelectorAll('a[href]'))
+        .map(a => decodeURIComponent(a.getAttribute('href')))
+        .filter(href => {
+          const ext = href.split('.').pop().toLowerCase().split('?')[0];
+          return IMAGE_EXTENSIONS.includes(ext);
+        })
+        .map(href => href.split('/').pop());
+
+      if (links.length === 0) throw new Error('No image links found in listing');
+      return links;
+    }
+
+    // ── Strategy 2: images/images.json manifest ──────────────────────────
+    // Create this file if you can't run a server:
+    // ["DSC001.jpg", "holiday.png", "IMG_20241210.jpg"]
+    async function loadFromManifest() {
+      const res = await fetch('images/images.json');
+      if (!res.ok) throw new Error('No manifest found');
+      const data = await res.json();
+      return Array.isArray(data) ? data : data.files;
+    }
+
+    // ── Main loader ──────────────────────────────────────────────────────
+    async function loadGallery() {
+      try {
+        const files = await loadFromDirectoryListing();
+        console.log('✅ Directory listing:', files);
+        buildGallery(files);
+      } catch (e1) {
+        console.warn('Directory listing failed:', e1.message);
+        try {
+          const files = await loadFromManifest();
+          console.log('✅ Manifest loaded:', files);
+          buildGallery(files);
+        } catch (e2) {
+          console.warn('Manifest failed:', e2.message);
+          document.getElementById('loadingMsg').classList.add('hidden');
+          document.getElementById('errorMsg').classList.remove('hidden');
+          document.getElementById('errorText').innerHTML = `
+            Couldn't auto-detect images 🙈<br><br>
+            <strong>Run a local server in this folder:</strong><br>
+            <code style="background:#ffeef4;padding:5px 12px;border-radius:8px;display:inline-block;margin:8px 0;font-size:0.9rem">python -m http.server 8000</code><br>
+            Then open <strong>http://localhost:8000</strong> 💕<br><br>
+            <span style="font-size:0.82rem;color:#a06080">
+              Or create <code style="background:#ffeef4;padding:2px 6px;border-radius:4px">images/images.json</code>
+              with a list of your filenames as a fallback.
+            </span>
+          `;
+        }
+      }
+    }
+
+    loadGallery();
+
+    // Lightbox
+    function openLightbox(src, caption) {
+      document.getElementById('lbImg').src = src;
+      document.getElementById('lbCaption').textContent = caption;
+      document.getElementById('lightbox').classList.add('open');
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+    // Floating hearts
+    const bg = document.getElementById('heartsBg');
+    const emojis = ['💕','🌸','✨','💗','🌷','💞','🎀'];
+    for (let i = 0; i < 20; i++) {
+      const span = document.createElement('span');
+      span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      span.style.cssText = `left:${Math.random()*100}%;animation-duration:${5+Math.random()*8}s;animation-delay:${Math.random()*8}s;font-size:${10+Math.random()*14}px;opacity:${0.15+Math.random()*0.3};`;
+      bg.appendChild(span);
+    }
+  </script>
+</body>
+</html>
