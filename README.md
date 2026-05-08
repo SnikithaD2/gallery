@@ -36,7 +36,3 @@ Just open `index.html` in any browser. No server needed!
 > **Tip:** If photos don't load, make sure the filenames in the `images` array
 > exactly match the files in the `images/` folder (case-sensitive).
 
-## Login Credentials
-
-- **Username:** `memories@23-27`
-- **Password:** `SnYaVaJe`
